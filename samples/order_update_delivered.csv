@@ -1,0 +1,2 @@
+Order ID,Order date,Customer name,Phone number,Order value,Payment type (Prepaid or COD),Order status,Dispatch date,Expected delivery date,Assigned employee
+NX-1003,2026-10-19T18:54:11+05:30,Sana Khan,919800000002,1023,Prepaid,delivered,,,Rohan Verma

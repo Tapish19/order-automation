@@ -1,0 +1,16 @@
+.venv/
+node_modules/
+__pycache__/
+.pytest_cache/
+*.pyc
+data/
+frontend/dist/
+artifacts/*.png
+artifacts/*.log
+artifacts/*.db*
+artifacts/*.zip
+artifacts/pytest-*/
+artifacts/browser-report/
+artifacts/browser-test-output/
+pytest-cache-files-*/
+*.tsbuildinfo

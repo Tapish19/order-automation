@@ -1,0 +1,72 @@
+{
+  "source": "Real Playwright browser acceptance run against FastAPI and on-disk SQLite",
+  "database": "browser-1792526494846.db",
+  "A_invalid_file": {
+    "id": 4,
+    "filename": "interview_invalid.csv",
+    "created_at": "2026-10-20T20:01:44.824288+00:00",
+    "total_rows": 3,
+    "inserted": 1,
+    "updated": 0,
+    "unchanged": 0,
+    "rejected": 2,
+    "duplicate_rows": 0
+  },
+  "B_dispatch_threshold": {
+    "old_hours": 24,
+    "new_hours": 12,
+    "exceptions_before": 18,
+    "exceptions_after": 37,
+    "additional_exceptions": 19
+  },
+  "C_first_three_uploads": [
+    {
+      "batch_id": 1,
+      "rows": 147,
+      "inserted": 136,
+      "updated": 0,
+      "unchanged": 0
+    },
+    {
+      "batch_id": 2,
+      "rows": 147,
+      "inserted": 0,
+      "updated": 0,
+      "unchanged": 136
+    },
+    {
+      "batch_id": 3,
+      "rows": 147,
+      "inserted": 0,
+      "updated": 0,
+      "unchanged": 136
+    }
+  ],
+  "C_task_counts_after_first_three_uploads": [
+    103,
+    103,
+    103
+  ],
+  "D_persisted_task": {
+    "id": 88,
+    "order_id": "NX-1117",
+    "assigned_employee": "Priya Nair",
+    "status": "in_progress",
+    "first_detected_at": "2026-10-20T20:01:40.138606+00:00",
+    "deadline": "2026-10-20T20:01:40.138606+00:00"
+  },
+  "E_reassignment_audit": {
+    "id": 269,
+    "order_id": "NX-1117",
+    "task_id": 88,
+    "responsible_user": "Live Interview Manager",
+    "action": "task_reassigned",
+    "timestamp": "2026-10-20T20:01:49.523666+00:00",
+    "details": {
+      "previous_employee": "Aarav Shah",
+      "assigned_employee": "Priya Nair",
+      "was_overdue": true,
+      "note": "Overdue handover during live interview"
+    }
+  }
+}

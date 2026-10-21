@@ -1,0 +1,20 @@
+{
+  "base_url": "http://127.0.0.1:8000",
+  "health": {
+    "status": "ok",
+    "timezone": "Asia/Kolkata",
+    "server_time": "2026-10-20T19:59:23.223845+00:00",
+    "scheduler_seconds": 60
+  },
+  "homepage_status": 200,
+  "asset_count": 2,
+  "api_docs_status": 200,
+  "report_status": 200,
+  "rules": {
+    "unconfirmed_hours": 2,
+    "dispatch_hours": 24,
+    "high_value_rupees": 5000,
+    "follow_up_hours": 4
+  },
+  "unique_orders": 0
+}

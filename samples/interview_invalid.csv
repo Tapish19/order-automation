@@ -1,0 +1,4 @@
+Order ID,Order date,Customer name,Phone number,Order value,Payment type (Prepaid or COD),Order status,Dispatch date,Expected delivery date,Assigned employee
+INTERVIEW-INVALID-PHONE,2026-10-16T00:54:11+05:30,Ananya Sharma,invalid,749,COD,delivered,2026-10-18T00:54:11+05:30,,Aarav Shah
+INTERVIEW-INVALID-DATE,not-a-date,Ananya Sharma,919800000000,749,COD,delivered,2026-10-18T00:54:11+05:30,,Aarav Shah
+INTERVIEW-VALID-18H,2026-10-20T06:54:11+05:30,Diya Kapoor,919800000006,1571,COD,confirmed,,,Rohan Verma

@@ -1,0 +1,18 @@
+{
+  "reference_time_utc": "2026-10-20T19:24:11.000000+00:00",
+  "reference_time_ist": "2026-10-21T00:54:11+05:30",
+  "rows": 147,
+  "columns": [
+    "Order ID",
+    "Order date",
+    "Customer name",
+    "Phone number",
+    "Order value",
+    "Payment type (Prepaid or COD)",
+    "Order status",
+    "Dispatch date",
+    "Expected delivery date",
+    "Assigned employee"
+  ],
+  "note": "Threshold records are exact only at this reference time. Tests freeze this clock; the live clock advances normally."
+}
