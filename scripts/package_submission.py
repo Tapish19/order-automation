@@ -7,9 +7,9 @@ output=root/'artifacts'/'naturax-order-automation-source.zip'
 files=[]
 for folder in ['backend/app','backend/tests','frontend/src','frontend/e2e','scripts','samples']:
     files.extend(p for p in (root/folder).rglob('*') if p.is_file() and '__pycache__' not in p.parts)
-files.extend(p for p in root.iterdir() if p.is_file() and (p.suffix in {'.md','.txt','.ini','.ps1','.sh'} or p.name=='.gitignore'))
+files.extend(p for p in root.iterdir() if p.is_file() and (p.suffix in {'.md','.txt','.ini','.ps1','.sh'} or p.name in {'.gitignore','.gitattributes','.vercelignore','vercel.json','pyproject.toml'}))
 files.extend(root/'frontend'/name for name in ['package.json','package-lock.json','tsconfig.json','vite.config.ts','playwright.config.ts','index.html'])
-files.extend(root/'artifacts'/name for name in ['pytest-results.xml','browser-results.json','daily-report.csv','dashboard-desktop.png','dashboard-mobile.png','data-corrections.png','reassignment-audit.png','live-smoke.json','interview-evidence.json'])
+files.extend(root/'artifacts'/name for name in ['pytest-results.xml','browser-results.json','vercel-browser-results.json','daily-report.csv','dashboard-desktop.png','dashboard-mobile.png','data-corrections.png','reassignment-audit.png','live-smoke.json','interview-evidence.json','vercel-readiness.json','vercel-concurrent-reads.json','vercel-persistence-before.json','vercel-persistence-after.json'])
 with ZipFile(output,'w',ZIP_DEFLATED) as archive:
     for file in sorted(set(files)):
         if file.exists():

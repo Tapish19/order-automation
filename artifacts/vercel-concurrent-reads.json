@@ -1,0 +1,66 @@
+{
+  "url": "https://naturax-order-automation.vercel.app",
+  "checks": [
+    {
+      "path": "/api/employees",
+      "status": 200,
+      "seconds": 0.216
+    },
+    {
+      "path": "/api/rules",
+      "status": 200,
+      "seconds": 0.175
+    },
+    {
+      "path": "/api/dashboard",
+      "status": 200,
+      "seconds": 0.229
+    },
+    {
+      "path": "/api/dashboard?date_from=2099-01-01&category=dispatch_delay&employee=Meera%20Iyer&priority=urgent",
+      "status": 200,
+      "seconds": 0.211
+    },
+    {
+      "path": "/api/employees",
+      "status": 200,
+      "seconds": 0.162
+    },
+    {
+      "path": "/api/rules",
+      "status": 200,
+      "seconds": 0.159
+    },
+    {
+      "path": "/api/dashboard",
+      "status": 200,
+      "seconds": 0.187
+    },
+    {
+      "path": "/api/dashboard?date_from=2099-01-01&category=dispatch_delay&employee=Meera%20Iyer&priority=urgent",
+      "status": 200,
+      "seconds": 0.127
+    },
+    {
+      "path": "/api/employees",
+      "status": 200,
+      "seconds": 0.068
+    },
+    {
+      "path": "/api/rules",
+      "status": 200,
+      "seconds": 0.059
+    },
+    {
+      "path": "/api/dashboard",
+      "status": 200,
+      "seconds": 0.19
+    },
+    {
+      "path": "/api/dashboard?date_from=2099-01-01&category=dispatch_delay&employee=Meera%20Iyer&priority=urgent",
+      "status": 200,
+      "seconds": 0.121
+    }
+  ],
+  "all_passed": true
+}

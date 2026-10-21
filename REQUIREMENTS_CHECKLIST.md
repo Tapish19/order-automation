@@ -95,13 +95,16 @@ Paths are relative to this project. Frontend screens live in `frontend/src/App.t
 | Deliverable | Location |
 |---|---|
 | Functional application / local demonstration | `start.ps1` / `start.sh`; built frontend served by FastAPI on http://127.0.0.1:8000; `DEMO_SCRIPT.md` |
+| Live Vercel demonstration with durable storage | https://naturax-order-automation.vercel.app; `vercel.json`, `pyproject.toml`, `database.py` remote adapter; deployment details/limits in `DEPLOYMENT.md` |
 | Complete frontend and backend source | `frontend/src/`, `frontend/vite.config.ts`, `backend/app/` |
 | CSV and Excel sample >=100 orders | `samples/naturax_orders.csv`, `samples/naturax_orders.xlsx` (147 each) |
 | Exact setup instructions | `README.md`; pinned `requirements.lock.txt` and `frontend/package-lock.json` |
 | Configurable business rules | Business rules screen; `GET/PUT /api/rules`; `models.py:RuleConfig` |
 | Automatic periodic detection | `main.py:create_app` / `ticker`; `backend/tests/test_scheduler.py` advances the clock and proves a task appears without any evaluate/upload action |
+| Serverless detection and provider limitations | `main.py:evaluate_if_due`, `GET /api/cron/evaluate`; `models.py:RuntimeState`; `backend/tests/test_hosting.py`; local timer remains 60s, hosted inactivity scheduling is daily on Hobby |
 | Persistent database and audit | `database.py`, `models.py`; default `data/naturax.db`; Audit trail screen |
 | Five-minute demonstration | `DEMO_SCRIPT.md`, including all A–E challenges and impact explanation |
 | Automated test source and actual results | `backend/tests/`, `frontend/e2e/interview.spec.ts`, `TEST_RESULTS.md`, `artifacts/pytest-results.xml`, `artifacts/browser-results.json` |
+| Hosted acceptance and concurrency evidence | `artifacts/vercel-browser-results.json`, `artifacts/vercel-concurrent-reads.json`, `artifacts/live-smoke.json`; same A–E browser flows run against public Vercel/Turso |
 | Requirement-to-implementation mapping | This file |
 | Practical scope, no unnecessary integrations | Local CSV/Excel import, SQLite persistence, manual real-world follow-up; limitations explicit in README |

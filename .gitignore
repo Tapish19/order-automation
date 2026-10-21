@@ -12,5 +12,13 @@ artifacts/*.zip
 artifacts/pytest-*/
 artifacts/browser-report/
 artifacts/browser-test-output/
+artifacts/vercel-browser-report/
+artifacts/vercel-browser-test-output/
+artifacts/hosting-samples/
 pytest-cache-files-*/
 *.tsbuildinfo
+
+.vercel
+.env*
+.agents/
+skills-lock.json

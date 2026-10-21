@@ -4,15 +4,19 @@ Final verification: **21 October 2026, Asia/Kolkata**. Environment: Windows, Pyt
 
 | Check | Actual result | Evidence |
 |---|---|---|
-| Backend rules/imports/lifecycle/reporting/scheduler | **65 passed**, 0 failed (12.83s) | `artifacts/pytest-results.xml`; `backend/tests/` |
+| Backend rules/imports/lifecycle/reporting/scheduler/hosted mode | **70 passed**, 0 failed (15.68s) | `artifacts/pytest-results.xml`; `backend/tests/` |
 | TypeScript compilation and Vite production build | **Passed**; compiled JS/CSS and index emitted | `frontend/dist/`; `npm run build` |
-| Browser acceptance flows against real backend/SQLite | **5 passed**, 0 failed, 0 skipped (22.5s) | `artifacts/browser-results.json`; HTML report at `artifacts/browser-report/index.html` |
+| Local browser acceptance flows against real backend/SQLite | **5 passed**, 0 failed, 0 skipped (13.5s) | `artifacts/browser-results.json`; HTML report at `artifacts/browser-report/index.html` |
+| Public Vercel browser acceptance, real Turso storage | **5 passed**, 0 failed, 0 skipped (19.0s), including A–E | `artifacts/vercel-browser-results.json`; `artifacts/vercel-browser-report/index.html` |
+| Public HTTPS runtime | **Passed**: frontend, both built assets, health, API docs, daily CSV; database reported Turso | `artifacts/live-smoke.json`; https://naturax-order-automation.vercel.app |
+| Concurrent hosted read pattern | **12/12 HTTP 200** in three waves of four parallel reads, including combined future-date/type/employee/priority filters | `artifacts/vercel-concurrent-reads.json` |
+| Protected hosted cron | Triggered through Vercel; an authenticated `Vercel daily cron` audit was persisted at **2026-10-21T03:11:34.644085+00:00** | `artifacts/vercel-persistence-before.json` → `cron_audit` |
 | Single-server runtime on port 8000 | **Passed**: homepage 200, both built assets 200, API/health 200, API docs 200, daily CSV 200 | `artifacts/live-smoke.json`; `scripts/smoke_live.py` |
 | Desktop/mobile visual capture | Captured; mobile 390×844 has no document-width overflow; no page errors in the combined final browser flow | `artifacts/dashboard-desktop.png`, `dashboard-mobile.png`, `data-corrections.png`, `reassignment-audit.png` |
 
 ## Interview challenges: observed evidence
 
-The following numbers come from the final real browser run's persisted SQLite records, summarized read-only by `scripts/collect_interview_evidence.py` in **`artifacts/interview-evidence.json`**. They are observed demonstration results, not projected business impact.
+The following reference numbers were retained from the original local interview run at **01:31 IST** on this date, summarized read-only in **`artifacts/interview-evidence.json`**. They are observed demonstration results, not projected business impact. The later local and hosted runs above also passed; live age-dependent counts naturally change as the sample records age.
 
 | Challenge | Observed result |
 |---|---|
@@ -44,6 +48,17 @@ The following numbers come from the final real browser run's persisted SQLite re
 - Daily report includes selected-date new detections, prior-date unresolved tasks, selected-date resolved detections, overdue/high-priority work and employee sections.
 - Employee/task/rule/responsible-user validation.
 - Periodic scheduler detects a newly aged order **without an upload or manual evaluation**. Test uses a controllable clock and shortened scheduler interval; the live default is 60 seconds.
+- Hosted request evaluation, daily cron authentication, consistent sample files across app instances, rejection of ephemeral SQLite on Vercel, and remote transaction policy tested using independent engines.
+
+## Hosted verification
+
+The final real browser run used **https://naturax-order-automation.vercel.app**, Vercel Python 3.12 functions in Mumbai and the provisioned **Turso Starter** database. It used server-generated CSV/Excel files persisted in that database. The final five flows passed in 19.0 seconds without test retries or skipped flows; read-only transport requests allow a bounded retry for connection resets.
+
+The hosted checks imported/corrected assessment records, changed the dispatch threshold through the UI, compared persistent task IDs across repeated uploads, reassigned an overdue task, opened its audit record with user/timestamp, downloaded the report, uploaded Excel and a delivered-order update, and checked the mobile layout.
+
+Afterward, the rules were restored to the assessment defaults **2h / 24h / ₹5,000 / 4h follow-up**. The live database held **138 unique assessment orders**. Task **#88 / NX-1117** remained assigned to **Priya Nair**, **in_progress**, with its original detection/deadline **2026-10-21T02:53:24.373905+00:00**. Its reassignment by **Live Interview Manager** was recorded at **2026-10-21T03:09:59.182234+00:00**. `scripts/check_hosted_state.py` captures this state and verifies it after a subsequent production deployment; evidence files are named `artifacts/vercel-persistence-before.json` and `artifacts/vercel-persistence-after.json`.
+
+Runtime fixes included removing unsupported libSQL timeout/PRAGMA options, storing generated workbook bytes as base64 text instead of unsupported DB-API binary bindings, preloading reconciliation/import lookups, and separating normal read transactions from mutation locks. These issues were found and corrected before the final clean live test run.
 
 ## Browser flows
 
@@ -57,12 +72,13 @@ The sample downloaded report is `artifacts/daily-report.csv`. Initial browser ha
 
 ## Nonblocking warnings and verification limits
 
-- The installed Starlette TestClient emits one deprecation warning about its `httpx` transport. All 65 tests complete successfully; this is a test tooling warning.
+- The installed Starlette TestClient emits one deprecation warning about its `httpx` transport. All 70 tests complete successfully; this is a test tooling warning.
 - Vite reports a JS chunk above its 500 kB advisory threshold (approximately 633 kB, 189 kB gzip, including React/Recharts). The build succeeds and browser flows pass. This local interview application has not been load-tested or performance-benchmarked.
 - Playwright's runner emits an environment color-output warning. It does not affect assertions.
 - No Shopify, WhatsApp, courier or production NaturaX integration was built or tested; none is needed for the assessment. Production authentication/RBAC, multi-server deployment, independent tamper-resistant audit storage, historic pending-state reconstruction and actual financial/time-saving outcomes are outside this local demonstration.
 - The illustrative 305-minute/day administrative saving in README is explicitly assumption-based, not a measured result.
-- Test servers were stopped after verification. Start the application with `start.ps1` (or the README Uvicorn command) for the live interview. The default `data/naturax.db` is preserved and begins with no imported orders; browser tests use separate databases.
+- Local test servers were stopped after verification. The Vercel site remains live. Local execution uses `start.ps1`; the default `data/naturax.db` is preserved and begins with no imported orders. Local browser tests use separate databases; hosted checks use persisted assessment records on the new demonstration site.
+- Vercel Hobby provides **daily unattended cron**, not minute-level unattended execution. Hosted rule evaluation also runs on uploads/updates/manual actions and API activity when due. This limitation is explicit in README and DEPLOYMENT.md; no paid plan was activated.
 
 ## Reproduce
 

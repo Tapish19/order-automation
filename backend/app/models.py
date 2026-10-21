@@ -98,3 +98,18 @@ class RuleConfig(Base):
     __tablename__ = "rule_config"
     id: Mapped[int] = mapped_column(primary_key=True, default=1)
     settings: Mapped[dict] = mapped_column(JSON)
+
+
+class RuntimeState(Base):
+    __tablename__ = "runtime_state"
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[str] = mapped_column(String(100))
+
+
+class SampleAsset(Base):
+    """Keep generated interview files consistent across serverless instances."""
+    __tablename__ = "sample_assets"
+    filename: Mapped[str] = mapped_column(String(100), primary_key=True)
+    # The remote DB-API does not implement sqlite3.Binary. Base64 text works
+    # across both drivers and keeps XLSX bytes intact across function instances.
+    content: Mapped[str] = mapped_column(Text)

@@ -32,30 +32,36 @@ def add_issue(db, batch, row_number, raw, error, now, severity="error"):
 
 def reconcile(db, now, actor="System scheduler"):
     config = db.get(RuleConfig, 1).settings
+    open_issues = db.scalars(select(DataIssue).where(DataIssue.status == "open")).all()
+    blocked_ids = {i.order_id for i in open_issues if i.severity == "error" and i.batch_id is not None}
+    evaluation_issues = defaultdict(list)
+    active_by_order = defaultdict(dict)
+    for issue in open_issues:
+        if issue.batch_id is None:
+            evaluation_issues[issue.order_id].append(issue)
+    for task in db.scalars(select(Task).where(Task.condition_active.is_(True))):
+        active_by_order[task.order_id][task.category] = task
     created = resolved = 0
     for order in db.scalars(select(Order)).all():
         # A rejected newer snapshot leaves the previous record intact, but it must
         # not create new exceptions from a now-uncertain order status or value.
-        blocked = db.scalar(select(DataIssue.id).where(DataIssue.order_id == order.id,
-                            DataIssue.status == "open", DataIssue.severity == "error",
-                            DataIssue.batch_id.is_not(None)).limit(1))
-        if blocked:
+        if order.id in blocked_ids:
             continue
         # A configuration change may make previously optional data necessary.
         raw = {k: getattr(order, k) for k in ORDER_FIELDS if k != "value_paise"}
         raw.update(id=order.id, order_value=f"{order.value_paise / 100:.2f}")
         _, errors = validate(raw, config, now)
+        issue_fields = {issue.field for issue in evaluation_issues[order.id]}
         for error in errors:
-            exists = db.scalar(select(DataIssue).where(DataIssue.order_id == order.id,
-                              DataIssue.field == error["field"], DataIssue.status == "open", DataIssue.batch_id.is_(None)))
-            if not exists:
+            if error["field"] not in issue_fields:
                 db.add(DataIssue(batch_id=None, filename=order.source_filename, row_number=order.source_row,
                                  order_id=order.id, raw_record=raw, severity="error", created_at=iso(now), **error))
-        active = {t.category: t for t in db.scalars(select(Task).where(Task.order_id == order.id, Task.condition_active.is_(True)))}
+                issue_fields.add(error["field"])
+        active = active_by_order[order.id]
         if errors:
             # Indeterminate data is not evidence that a previous exception was resolved.
             continue
-        for issue in db.scalars(select(DataIssue).where(DataIssue.order_id == order.id, DataIssue.batch_id.is_(None), DataIssue.status == "open")):
+        for issue in evaluation_issues[order.id]:
             issue.status, issue.resolved_at = "resolved", iso(now)
         detected = detect(order, config, now)
         for category, info in detected.items():
@@ -87,11 +93,22 @@ def import_records(db, records, filename, now, actor, row_numbers=None):
     db.add(batch)
     db.flush()
     config = db.get(RuleConfig, 1).settings
+    counts = Counter()
     batch.total_rows = len(records)
     ids = defaultdict(list)
     for i, raw in enumerate(records):
-        if raw.get("id"):
-            ids[raw["id"]].append(i)
+        if clean(raw.get("id")):
+            ids[clean(raw["id"])].append(i)
+    existing_orders = {}
+    previous_issues = defaultdict(list)
+    identifiers = list(ids)
+    # Keep bind counts portable even for the maximum-size local upload.
+    for start in range(0, len(identifiers), 500):
+        chunk = identifiers[start:start + 500]
+        existing_orders.update({o.id: o for o in db.scalars(select(Order).where(Order.id.in_(chunk)))})
+        for issue in db.scalars(select(DataIssue).where(DataIssue.order_id.in_(chunk), DataIssue.status == "open", DataIssue.severity == "error")):
+            previous_issues[issue.order_id].append(issue)
+    employee_names = set(db.scalars(select(Employee.name)))
     conflicts = set()
     repeats = set()
     for indices in ids.values():
@@ -106,16 +123,16 @@ def import_records(db, records, filename, now, actor, row_numbers=None):
         if i in conflicts:
             add_issue(db, batch, row_number, raw, {"field": "id", "explanation": "Conflicting duplicate ID inside this file. All conflicting copies were rejected.",
                 "recommended_correction": "Keep one authoritative row per order ID, or correct the ID if these are different orders."}, now)
-            batch.rejected += 1
-            batch.duplicate_rows += 1
+            counts["rejected"] += 1
+            counts["duplicate_rows"] += 1
             continue
         if i in repeats:
             add_issue(db, batch, row_number, raw, {"field": "id", "explanation": "Identical duplicate row inside this file; safely skipped.",
                 "recommended_correction": "Remove the repeated row from the source file."}, now, severity="warning")
-            batch.duplicate_rows += 1
+            counts["duplicate_rows"] += 1
             continue
         row, errors = validate(raw, config, now)
-        existing = db.get(Order, row.get("id")) if row.get("id") else None
+        existing = existing_orders.get(row.get("id"))
         if existing and not errors:
             identity_diff = [k for k in ("customer_name", "phone", "order_date") if str(getattr(existing, k)).casefold() != str(row[k]).casefold()]
             if identity_diff:
@@ -124,9 +141,11 @@ def import_records(db, records, filename, now, actor, row_numbers=None):
         if errors:
             for error in errors:
                 add_issue(db, batch, row_number, raw, error, now)
-            batch.rejected += 1
+            counts["rejected"] += 1
             continue
-        ensure_employee(db, row["assigned_employee"])
+        if row["assigned_employee"] not in employee_names:
+            ensure_employee(db, row["assigned_employee"])
+            employee_names.add(row["assigned_employee"])
         if existing:
             changes = {k: {"from": getattr(existing, k), "to": row[k]} for k in ORDER_FIELDS if getattr(existing, k) != row[k]}
             if changes:
@@ -136,20 +155,22 @@ def import_records(db, records, filename, now, actor, row_numbers=None):
                 audit(db, actor, "order_updated", now, existing.id, changes=changes)
                 if "assigned_employee" in changes:
                     audit(db, actor, "order_assignment_changed", now, existing.id, **changes["assigned_employee"])
-                batch.updated += 1
+                counts["updated"] += 1
             else:
-                batch.unchanged += 1
+                counts["unchanged"] += 1
         else:
             db.add(Order(id=row["id"], **{k: row[k] for k in ORDER_FIELDS}, source_filename=filename,
                          source_row=row_number, first_imported_at=iso(now), updated_at=iso(now)))
             audit(db, actor, "order_imported", now, row["id"], assigned_employee=row["assigned_employee"])
-            batch.inserted += 1
+            counts["inserted"] += 1
         db.flush()
         # A valid later import resolves earlier errors for this ID, while retaining history.
-        for issue in db.scalars(select(DataIssue).where(DataIssue.order_id == row["id"], DataIssue.status == "open", DataIssue.severity == "error")):
+        for issue in previous_issues[row["id"]]:
             if issue.batch_id != batch.id:
                 issue.status, issue.resolved_at = "resolved", iso(now)
                 audit(db, actor, "data_issue_resolved", now, row["id"], issue_id=issue.id, resolution="Valid order reimported")
+    for field in ("inserted", "updated", "unchanged", "rejected", "duplicate_rows"):
+        setattr(batch, field, counts[field])
     db.flush()
     result = reconcile(db, now, actor)
     audit(db, actor, "file_imported", now, filename=filename, batch_id=batch.id, total_rows=batch.total_rows,

@@ -2,6 +2,14 @@
 
 A complete local application: React + Vite + TypeScript + Tailwind CSS, Recharts, Python + FastAPI, Pandas, SQLAlchemy and SQLite. The browser reads and changes the real backend database. No Shopify account, WhatsApp connection, courier API, API keys, or production NaturaX data is needed. The initial database is empty; sample orders are imported explicitly.
 
+## Hosted application on Vercel
+
+Live URL: **https://naturax-order-automation.vercel.app**. See `DEPLOYMENT.md` for hosting configuration and verification evidence. The hosted database uses **Turso's SQLite-compatible service**; the local setup below continues using the local SQLite file. Hosted sample files are generated once and persisted in the database so repeat uploads use the same reference times across function instances. The hosted demo contains assessment records imported through the actual API during verification, not NaturaX production data.
+
+Vercel Hobby functions do not run a permanent 60-second process. Hosted rules evaluate after uploads/corrections/rule changes/manual evaluation, on API activity when 60 seconds have elapsed since the last evaluation, and via an authenticated **daily** cron at `02:30 UTC` (08:00 IST, subject to Hobby scheduling precision). The browser's minute refresh creates API activity while open. **When the application is closed, Hobby only provides daily scheduled detection, not minute-level detection.** Local `start.ps1` retains the continuous 60-second scheduler while its server runs. A more frequent hosted unattended schedule requires a suitable scheduler/plan; no paid plan was enabled.
+
+Hosted uploads are limited to **4 MB**, below Vercel's function payload ceiling. Local uploads retain the **10 MB** limit. The frontend reads the actual limit from `/api/meta`. The same 50,000-row validation cap applies. The production site is an interview demonstration with a self-declared audit user; do not treat it as authenticated production order operations.
+
 ## Setup on Windows (PowerShell)
 
 Prerequisites: Python **3.12–3.13**, Node.js **22.12+ or 24**, npm. Tested here with Python 3.13.14 and Node 24.18.0. The tested NumPy lockfile requires Python 3.12+. Internet access is needed once to install packages; the application runs locally afterward.

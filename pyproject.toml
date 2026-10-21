@@ -1,0 +1,17 @@
+[project]
+name = "naturax-order-automation"
+version = "1.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "SQLAlchemy>=2.0,<2.1",
+  "pandas>=2.2,<3.1", "openpyxl>=3.1,<4", "xlrd>=2.0,<3",
+  "python-multipart>=0.0.20,<1", "tzdata>=2025.1",
+  "sqlalchemy-libsql==0.2.0; sys_platform != 'win32'",
+  "libsql-experimental==0.0.55; sys_platform != 'win32'",
+]
+
+[tool.vercel]
+entrypoint = "backend.app.main:app"
+
+[tool.vercel.fastapi.static]
+cdn = true

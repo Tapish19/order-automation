@@ -1,7 +1,11 @@
 import asyncio
+import base64
 import csv
 import io
+import logging
 import os
+import secrets
+import tempfile
 import threading
 from collections import Counter
 from contextlib import asynccontextmanager
@@ -11,18 +15,18 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from .database import ROOT, create_database
-from .models import Audit, DataIssue, Employee, ImportBatch, Order, RuleConfig, Task
+from .models import Audit, DataIssue, Employee, ImportBatch, Order, RuleConfig, RuntimeState, SampleAsset, Task
 from .rules import CATEGORIES
 from .sample_data import generate_samples
 from .services import OPEN_STATUSES, audit, import_records, reconcile, serialize, task_dict
-from .timeutils import IST, day_bounds, iso, local_day, utcnow
+from .timeutils import IST, day_bounds, iso, local_day, timestamp, utcnow
 from .validation import FileError, HEADERS, read_file, validate
 
 
@@ -109,6 +113,29 @@ def create_app(database_url=None, clock=None, scheduler=True, evaluation_interva
     engine, factory = create_database(database_url or os.getenv("NATURAX_DATABASE_URL"))
     write_lock = threading.RLock()
     get_now = clock or utcnow
+    hosted = os.getenv("VERCEL") == "1" or os.getenv("NATURAX_SERVERLESS") == "1"
+    scheduler_enabled = scheduler and not hosted
+    request_check_at = None
+
+    def mark_evaluated(db, now):
+        state = db.get(RuntimeState, "last_evaluation")
+        if state:
+            state.value = iso(now)
+        else:
+            db.add(RuntimeState(key="last_evaluation", value=iso(now)))
+
+    def evaluate_if_due():
+        nonlocal request_check_at
+        with write_lock:
+            now = get_now()
+            if request_check_at and (now - request_check_at).total_seconds() < evaluation_interval:
+                return
+            with factory.begin() as db:
+                state = db.get(RuntimeState, "last_evaluation")
+                if not state or (now - timestamp(state.value)).total_seconds() >= evaluation_interval:
+                    reconcile(db, now, "System request evaluation")
+                    mark_evaluated(db, now)
+            request_check_at = now
 
     async def ticker():
         while True:
@@ -120,9 +147,12 @@ def create_app(database_url=None, clock=None, scheduler=True, evaluation_interva
 
     @asynccontextmanager
     async def lifespan(app):
-        with write_lock, factory.begin() as db:
-            reconcile(db, get_now())
-        background = asyncio.create_task(ticker()) if scheduler else None
+        if hosted:
+            await asyncio.to_thread(evaluate_if_due)
+        else:
+            with write_lock, factory.begin() as db:
+                reconcile(db, get_now())
+        background = asyncio.create_task(ticker()) if scheduler_enabled else None
         yield
         if background:
             background.cancel()
@@ -133,22 +163,31 @@ def create_app(database_url=None, clock=None, scheduler=True, evaluation_interva
         engine.dispose()
 
     app = FastAPI(title="NaturaX Order Automation", version="1.0.0", lifespan=lifespan)
+    @app.exception_handler(Exception)
+    async def log_unhandled_error(request, exc):
+        logging.getLogger("naturax").error("Unhandled %s on %s", type(exc).__name__, request.url.path, exc_info=exc)
+        return JSONResponse(status_code=500, content={"detail": "The request could not be completed. Check the server error log."})
     app.state.factory, app.state.engine = factory, engine
     app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
                        allow_methods=["GET", "POST", "PATCH", "PUT"], allow_headers=["Content-Type", "X-User"])
 
     def session():
+        if hosted:
+            evaluate_if_due()
         with factory() as db:
             yield db
 
     @app.get("/api/health")
     def health(db=Depends(session)):
         db.execute(select(RuleConfig))
-        return {"status": "ok", "timezone": "Asia/Kolkata", "server_time": iso(get_now()), "scheduler_seconds": evaluation_interval if scheduler else None}
+        return {"status": "ok", "timezone": "Asia/Kolkata", "server_time": iso(get_now()),
+                "scheduler_seconds": evaluation_interval if scheduler_enabled else None,
+                "evaluation_mode": "request_and_daily_cron" if hosted else "local_scheduler",
+                "database": "turso" if engine.dialect.driver == "libsql" else "sqlite"}
 
     @app.get("/api/meta")
     def meta():
-        return {"categories": CATEGORIES, "required_columns": list(HEADERS), "timezone": "Asia/Kolkata"}
+        return {"categories": CATEGORIES, "required_columns": list(HEADERS), "timezone": "Asia/Kolkata", "max_upload_mb": 4 if hosted else 10}
 
     @app.get("/api/employees")
     def employees(db=Depends(session)):
@@ -170,9 +209,10 @@ def create_app(database_url=None, clock=None, scheduler=True, evaluation_interva
 
     @app.post("/api/uploads")
     async def upload(file: UploadFile, actor=Depends(responsible_user)):
-        content = await file.read(10 * 1024 * 1024 + 1)
-        if len(content) > 10 * 1024 * 1024:
-            raise HTTPException(413, "Maximum file size is 10 MB.")
+        max_upload_mb = 4 if hosted else 10
+        content = await file.read(max_upload_mb * 1024 * 1024 + 1)
+        if len(content) > max_upload_mb * 1024 * 1024:
+            raise HTTPException(413, f"Maximum file size is {max_upload_mb} MB.")
         filename = Path((file.filename or "upload.csv").replace("\\", "/")).name[:255]
         try:
             records, missing = read_file(filename, content)
@@ -181,6 +221,8 @@ def create_app(database_url=None, clock=None, scheduler=True, evaluation_interva
         def ingest():
             with write_lock, factory.begin() as db:
                 batch, result = import_records(db, records, filename, get_now(), actor)
+                if hosted:
+                    mark_evaluated(db, get_now())
                 return {**serialize(batch), **result, "missing_columns": missing,
                         "issue_count": len(db.scalars(select(DataIssue).where(DataIssue.batch_id == batch.id)).all())}
         return await asyncio.to_thread(ingest)
@@ -209,6 +251,8 @@ def create_app(database_url=None, clock=None, scheduler=True, evaluation_interva
             if errors:
                 raise HTTPException(422, {"message": "Correction is still invalid.", "errors": errors})
             batch, result = import_records(db, [body.record], issue.filename, now, actor, [issue.row_number])
+            if hosted:
+                mark_evaluated(db, now)
             if batch.rejected:
                 raise HTTPException(409, "This ID conflicts with an existing order. Verify the customer identity or use the correct ID.")
             # Resolve all issues for the original source row, including missing IDs.
@@ -256,7 +300,23 @@ def create_app(database_url=None, clock=None, scheduler=True, evaluation_interva
     def evaluate(actor=Depends(responsible_user)):
         with write_lock, factory.begin() as db:
             result = reconcile(db, get_now(), actor)
+            if hosted:
+                mark_evaluated(db, get_now())
             audit(db, actor, "rules_evaluated", get_now(), **result)
+            return result
+
+    @app.get("/api/cron/evaluate")
+    def cron_evaluate(authorization: str | None = Header(default=None)):
+        secret = os.getenv("CRON_SECRET")
+        if not secret:
+            raise HTTPException(503, "Cron authentication is not configured.")
+        if not secrets.compare_digest(authorization or "", f"Bearer {secret}"):
+            raise HTTPException(401, "Invalid cron authorization.")
+        with write_lock, factory.begin() as db:
+            now = get_now()
+            result = reconcile(db, now, "Vercel daily cron")
+            mark_evaluated(db, now)
+            audit(db, "Vercel daily cron", "rules_evaluated", now, **result)
             return result
 
     @app.get("/api/rules")
@@ -270,6 +330,8 @@ def create_app(database_url=None, clock=None, scheduler=True, evaluation_interva
             old, config.settings = config.settings.copy(), body.model_dump()
             audit(db, actor, "rules_changed", get_now(), previous=old, settings=config.settings)
             result = reconcile(db, get_now(), actor)
+            if hosted:
+                mark_evaluated(db, get_now())
             return {"settings": config.settings, **result}
 
     @app.get("/api/dashboard")
@@ -332,16 +394,33 @@ def create_app(database_url=None, clock=None, scheduler=True, evaluation_interva
                              "assigned_employee":safe(name), "pending_count":count})
         return Response("\ufeff" + stream.getvalue(), media_type="text/csv", headers={"Content-Disposition":f'attachment; filename="naturax-daily-{report_date}.csv"'})
 
+    def store_samples(db, now):
+        with tempfile.TemporaryDirectory(prefix="naturax-samples-") as directory:
+            result = generate_samples(now, directory)
+            for path in Path(directory).iterdir():
+                db.merge(SampleAsset(filename=path.name, content=base64.b64encode(path.read_bytes()).decode("ascii")))
+            return result
+
     @app.post("/api/demo/generate")
     def generate(actor=Depends(responsible_user)):
         with write_lock:
-            result = generate_samples(get_now())
             with factory.begin() as db:
+                result = store_samples(db, get_now()) if hosted else generate_samples(get_now())
                 audit(db, actor, "sample_files_generated", get_now(), **result)
             return result
 
     @app.get("/api/samples/{filename}")
     def sample(filename: Literal["naturax_orders.csv", "naturax_orders.xlsx", "interview_invalid.csv", "order_update_delivered.csv", "manifest.json"]):
+        if hosted:
+            with write_lock, factory.begin() as db:
+                asset = db.get(SampleAsset, filename)
+                if not asset:
+                    store_samples(db, get_now())
+                    db.flush()
+                    asset = db.get(SampleAsset, filename)
+                content = base64.b64decode(asset.content)
+            media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if filename.endswith(".xlsx") else "application/json" if filename.endswith(".json") else "text/csv"
+            return Response(content, media_type=media, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
         path = ROOT / "samples" / filename
         if not path.exists():
             with write_lock:

@@ -63,7 +63,8 @@
             "height": 1000
           },
           "screenshot": "only-on-failure",
-          "trace": "retain-on-failure"
+          "trace": "retain-on-failure",
+          "actionTimeout": 15000
         },
         "dependencies": [],
         "ignoreSnapshots": false,
@@ -106,7 +107,7 @@
       "timeout": 30000,
       "reuseExistingServer": false,
       "env": {
-        "NATURAX_DATABASE_URL": "sqlite:///C:/Users/Abhishek/Downloads/naturax-order-automation/artifacts/browser-1792526494846.db"
+        "NATURAX_DATABASE_URL": "sqlite:///C:/Users/Abhishek/Downloads/naturax-order-automation/artifacts/browser-1792551620766.db"
       }
     }
   },
@@ -142,12 +143,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 4915,
+                  "duration": 2092,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-20T20:01:38.635Z",
+                  "startTime": "2026-10-21T03:00:23.190Z",
                   "annotations": [
                     {
                       "type": "serial",
@@ -194,12 +195,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 2383,
+                  "duration": 1367,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-20T20:01:43.931Z",
+                  "startTime": "2026-10-21T03:00:25.580Z",
                   "annotations": [
                     {
                       "type": "serial",
@@ -218,7 +219,7 @@
           ],
           "id": "5e7cd2a6f7ac0afddfa8-e13218883fdf3c016946",
           "file": "interview.spec.ts",
-          "line": 27,
+          "line": 28,
           "column": 1
         },
         {
@@ -246,12 +247,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 1897,
+                  "duration": 1269,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-20T20:01:46.336Z",
+                  "startTime": "2026-10-21T03:00:26.960Z",
                   "annotations": [
                     {
                       "type": "serial",
@@ -270,7 +271,7 @@
           ],
           "id": "5e7cd2a6f7ac0afddfa8-2ea378e2ab89e049af4d",
           "file": "interview.spec.ts",
-          "line": 46,
+          "line": 47,
           "column": 1
         },
         {
@@ -298,12 +299,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 3018,
+                  "duration": 1795,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-20T20:01:48.253Z",
+                  "startTime": "2026-10-21T03:00:28.240Z",
                   "annotations": [
                     {
                       "type": "serial",
@@ -322,7 +323,7 @@
           ],
           "id": "5e7cd2a6f7ac0afddfa8-4de0a8d1493b2289ac76",
           "file": "interview.spec.ts",
-          "line": 71,
+          "line": 74,
           "column": 1
         },
         {
@@ -350,12 +351,12 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 5120,
+                  "duration": 3335,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-20T20:01:51.288Z",
+                  "startTime": "2026-10-21T03:00:30.044Z",
                   "annotations": [
                     {
                       "type": "serial",
@@ -374,7 +375,7 @@
           ],
           "id": "5e7cd2a6f7ac0afddfa8-91e24df9b2e00477ccf5",
           "file": "interview.spec.ts",
-          "line": 107,
+          "line": 110,
           "column": 1
         }
       ]
@@ -382,8 +383,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-20T20:01:34.854Z",
-    "duration": 22499.593999999997,
+    "startTime": "2026-10-21T03:00:20.769Z",
+    "duration": 13452.498,
     "expected": 5,
     "skipped": 0,
     "unexpected": 0,

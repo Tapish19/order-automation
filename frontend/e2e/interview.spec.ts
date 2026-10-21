@@ -2,11 +2,12 @@ import { test, expect, type Page } from '@playwright/test'
 import path from 'node:path'
 
 test.describe.configure({mode:'serial'})
-const samples=path.resolve(import.meta.dirname,'../../samples')
+const samples=process.env.NATURAX_E2E_SAMPLES || path.resolve(import.meta.dirname,'../../samples')
 async function navigate(page:Page,name:string){await page.getByRole('navigation').getByRole('button',{name:new RegExp('^'+name)}).click();await expect(page.getByRole('heading',{name:name==='Dashboard'?'Order overview':name,exact:true})).toBeVisible();await expect(page.getByText('Refreshing from backend…')).toBeHidden()}
 async function upload(page:Page,filename:string){await navigate(page,'Upload orders');await page.getByLabel('Order file').setInputFiles(path.join(samples,filename));await page.getByRole('button',{name:'Upload & evaluate orders'}).click();await expect(page.getByLabel('Import result')).toBeVisible();await expect(page.getByRole('status').filter({hasText:'Import complete:'})).toBeVisible()}
 
 test('CSV upload, all five categories, and repeated uploads are idempotent (C)',async({page,request})=>{
+  const baseline=(await (await request.get('/api/dashboard',{maxRetries:2,timeout:120000})).json()).uploaded_rows
   await page.goto('/')
   await expect(page.getByRole('heading',{name:'Order overview'})).toBeVisible()
   await upload(page,'naturax_orders.csv')
@@ -19,8 +20,8 @@ test('CSV upload, all five categories, and repeated uploads are idempotent (C)',
   const repeated=await (await request.get('/api/tasks')).json()
   expect(repeated.map((t:{id:number})=>t.id).sort()).toEqual(firstIds)
   await navigate(page,'Dashboard')
-  await expect(page.getByTestId('uploaded-rows')).toHaveText('441')
-  await expect(page.getByTestId('open-tasks')).toHaveText(String(initial.length))
+  await expect(page.getByTestId('uploaded-rows')).toHaveText((baseline+441).toLocaleString('en-IN'))
+  await expect(page.getByTestId('open-tasks')).toHaveText(String(initial.filter((t:{status:string})=>['open','in_progress'].includes(t.status)).length))
   await page.screenshot({path:'../artifacts/dashboard-desktop.png',fullPage:true})
 })
 
@@ -45,6 +46,8 @@ test('invalid file exposes source errors, valid rows import, correction persists
 
 test('24 to 12 hour rule challenge and all dashboard filters affect API results (B)',async({page,request})=>{
   await page.goto('/')
+  const settings=await (await request.get('/api/rules',{maxRetries:2,timeout:120000})).json()
+  if(settings.dispatch_hours!==24){const reset=await request.put('/api/rules',{data:{...settings,dispatch_hours:24},timeout:120000});expect(reset.ok()).toBeTruthy()}
   const count24=(await (await request.get('/api/tasks?category=dispatch_delay&status=open')).json()).length
   await navigate(page,'Business rules')
   await page.getByLabel('Dispatch threshold',{exact:true}).fill('12')
@@ -64,7 +67,7 @@ test('24 to 12 hour rule challenge and all dashboard filters affect API results 
   await expect(page.getByTestId('open-tasks')).toHaveText('0')
   await page.getByLabel('From date').fill('2099-01-01')
   await expect(page.getByTestId('attention-count')).toHaveText('0')
-  const direct=await (await request.get('/api/dashboard?date_from=2099-01-01&category=dispatch_delay&employee=Meera%20Iyer&priority=urgent')).json()
+  const direct=await (await request.get('/api/dashboard?date_from=2099-01-01&category=dispatch_delay&employee=Meera%20Iyer&priority=urgent',{maxRetries:2,timeout:120000})).json()
   expect(direct.open_tasks).toBe(0)
 })
 
@@ -112,9 +115,10 @@ test('Excel upload, daily CSV download, team creation, order updates and respons
   await upload(page,'naturax_orders.xlsx')
   expect((await (await request.get('/api/tasks')).json()).length).toBe(before)
   await navigate(page,'Business rules')
-  await page.getByLabel('New employee name').fill('Interview Specialist')
+  const employeeName=`Interview Specialist ${Date.now()}`
+  await page.getByLabel('New employee name').fill(employeeName)
   await page.getByRole('button',{name:'Add employee'}).click()
-  await expect(page.getByText('Interview Specialist',{exact:true})).toBeVisible()
+  await expect(page.getByText(employeeName,{exact:true})).toBeVisible()
   await navigate(page,'Daily reports')
   const downloadPromise=page.waitForEvent('download')
   await page.getByRole('button',{name:'Download daily CSV'}).click()

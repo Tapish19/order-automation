@@ -1,0 +1,41 @@
+{
+  "url": "https://naturax-order-automation.vercel.app",
+  "database": "turso",
+  "order_count": 138,
+  "tracked_task": {
+    "id": 88,
+    "order_id": "NX-1117",
+    "assigned_employee": "Priya Nair",
+    "status": "in_progress",
+    "first_detected_at": "2026-10-21T02:53:24.373905+00:00",
+    "deadline": "2026-10-21T02:53:24.373905+00:00"
+  },
+  "reassignment_audit": {
+    "id": 364,
+    "order_id": "NX-1117",
+    "task_id": 88,
+    "responsible_user": "Live Interview Manager",
+    "action": "task_reassigned",
+    "timestamp": "2026-10-21T03:09:59.182234+00:00",
+    "details": {
+      "previous_employee": "Aarav Shah",
+      "assigned_employee": "Priya Nair",
+      "was_overdue": true,
+      "note": "Overdue handover during live interview"
+    }
+  },
+  "cron_audit": {
+    "id": 372,
+    "order_id": null,
+    "task_id": null,
+    "responsible_user": "Vercel daily cron",
+    "action": "rules_evaluated",
+    "timestamp": "2026-10-21T03:11:34.644085+00:00",
+    "details": {
+      "created_tasks": 0,
+      "resolved_tasks": 0
+    }
+  },
+  "audit_count": 392,
+  "checked_at": "2026-10-21T03:11:35.166256+00:00"
+}
