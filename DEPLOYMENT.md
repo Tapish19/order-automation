@@ -62,6 +62,10 @@ Official constraints: [Vercel SQLite storage](https://vercel.com/kb/guide/is-sql
 
 Backend tests include hosted request evaluation, persistent sample files, missing-cloud-credentials rejection, cron authentication and independent-instance transaction policy. The executed results are **70 backend tests**, **5 local browser flows**, **5 public Vercel browser flows** and **12 concurrent public read checks**, all passing. A manually triggered protected cron produced a persistent audit entry. Live transport and browser evidence is recorded separately from local tests in `TEST_RESULTS.md` and `artifacts/vercel-*.json`.
 
+The subsequent user-requested recording reset added two backup/rollback tests; the full backend suite then passed **72 tests**. A read-only public browser check confirmed zero orders, uploads, tasks and correction issues, the four default employees, default rules and 147 downloadable sample rows. The earlier acceptance results above remain historical verification rather than a description of the current empty database.
+
+For an explicitly requested fresh recording start, `scripts/reset_live_demo.py --apply` runs through `vercel env run -e production --scope tapish19s-projects -- .\\.venv\\Scripts\\python.exe scripts/reset_live_demo.py --apply`. It saves a verified SQLite snapshot under ignored `data/backups/`, then clears demonstration records, restores default employees/rules, refreshes all sample files, and records one `demo_reset` audit event. The backup includes previous assignments and audit history. Without `--apply`, it only saves a backup. Never run a reset without the user's authorization. It does not delete or replace the cloud database resource. `--local PATH` supports a rehearsal against a disposable local database. Download new sample copies after a reset.
+
 Live browser acceptance can run against this **new assessment dataset** using:
 
 ```powershell

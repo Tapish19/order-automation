@@ -2,6 +2,8 @@
 
 Final verification: **21 October 2026, Asia/Kolkata**. Environment: Windows, Python 3.13.14, Node.js 24.18.0, locally installed Microsoft Edge in headless mode. The actual installed Python versions are pinned in `requirements.lock.txt`; frontend versions in `frontend/package-lock.json`.
 
+Recording reset follow-up, **10:10 IST**: the user selected an empty live starting state. The full backend suite passed **72 tests in 17.40s**, including two new tests verifying the pre-reset SQLite backup/default state and transaction rollback on failure (`backend/tests/test_demo_reset.py`). A read-only live Edge browser check passed at `2026-10-21T04:40:06.354Z`: zero orders/uploads/tasks/issues, default rules (2h/24h/₹5,000/4h), four employees, 147 downloadable sample rows and no page errors. Previous live records and audits are retained in an ignored local SQLite backup under `data/backups/`; current live data is intentionally empty for the recording. Earlier acceptance evidence below describes the completed runs before this reset.
+
 | Check | Actual result | Evidence |
 |---|---|---|
 | Backend rules/imports/lifecycle/reporting/scheduler/hosted mode | **70 passed**, 0 failed (15.68s) | `artifacts/pytest-results.xml`; `backend/tests/` |
