@@ -115,10 +115,16 @@ test('Excel upload, daily CSV download, team creation, order updates and respons
   await upload(page,'naturax_orders.xlsx')
   expect((await (await request.get('/api/tasks')).json()).length).toBe(before)
   await navigate(page,'Business rules')
-  const employeeName=`Interview Specialist ${Date.now()}`
-  await page.getByLabel('New employee name').fill(employeeName)
-  await page.getByRole('button',{name:'Add employee'}).click()
-  await expect(page.getByText(employeeName,{exact:true})).toBeVisible()
+  // Employee creation is tested in the disposable local database. Hosted runs
+  // must not leave test-only people in the persistent demonstration directory.
+  if(!process.env.NATURAX_E2E_BASE_URL){
+    const employeeName=`Interview Specialist ${Date.now()}`
+    await page.getByLabel('New employee name').fill(employeeName)
+    await page.getByRole('button',{name:'Add employee'}).click()
+    await expect(page.getByText(employeeName,{exact:true})).toBeVisible()
+  }else{
+    await expect(page.getByText('Aarav Shah',{exact:true})).toBeVisible()
+  }
   await navigate(page,'Daily reports')
   const downloadPromise=page.waitForEvent('download')
   await page.getByRole('button',{name:'Download daily CSV'}).click()
