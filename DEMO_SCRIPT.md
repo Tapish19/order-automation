@@ -2,6 +2,8 @@
 
 Before the interview: follow README setup, generate samples once for today, then launch using a new SQLite filename (e.g. `sqlite:///data/interview-2026-10-21.db`). Open http://127.0.0.1:8000 and set **Responsible user** to your name. Keep `samples/naturax_orders.csv` unchanged through the repeat-upload challenge. The API Swagger screen at `/docs` is a useful backup for inspecting JSON.
 
+**Hosted option:** open **https://naturax-order-automation.vercel.app** without starting a local server. It already contains persisted assessment records. Use **Upload orders → Import sample orders** or download the matching files from that screen, including `interview_invalid.csv` and `order_update_delivered.csv`. For a hosted demonstration, use those downloaded files wherever the steps below mention `samples/...`; their reference times match the orders already in the cloud database. Repository/local-generated files have a separate reference time and may correctly be rejected as identity collisions if mixed with the hosted records. The hosted dispatch threshold was restored to 24 hours after verification. For a completely fresh clock-relative demonstration on a later date, the local fresh-database setup above is available without replacing or deleting cloud history.
+
 ## 0:00–0:45 — Upload, rules and business value
 
 Explain: “This app turns one CSV/Excel upload into a persistent follow-up queue. The database, rules and reports are local; no production credentials are needed.”

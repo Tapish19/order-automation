@@ -60,7 +60,7 @@ Official constraints: [Vercel SQLite storage](https://vercel.com/kb/guide/is-sql
 
 ## Verification
 
-Backend tests include hosted request evaluation, persistent sample files, missing-cloud-credentials rejection, cron authentication and independent-instance transaction policy. Live transport and browser evidence is recorded separately from local tests in `TEST_RESULTS.md` and `artifacts/vercel-*.json`.
+Backend tests include hosted request evaluation, persistent sample files, missing-cloud-credentials rejection, cron authentication and independent-instance transaction policy. The executed results are **70 backend tests**, **5 local browser flows**, **5 public Vercel browser flows** and **12 concurrent public read checks**, all passing. A manually triggered protected cron produced a persistent audit entry. Live transport and browser evidence is recorded separately from local tests in `TEST_RESULTS.md` and `artifacts/vercel-*.json`.
 
 Live browser acceptance can run against this **new assessment dataset** using:
 
